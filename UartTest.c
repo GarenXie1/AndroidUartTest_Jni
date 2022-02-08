@@ -1,0 +1,184 @@
+﻿#include <jni.h>
+#include <stdio.h>
+#include "UartTest.h"
+#include <termios.h>
+#include <fcntl.h>
+#include <errno.h>
+
+
+
+void c_hello(JNIEnv *env, jobject cls)
+{
+	printf("C ---> Uart test ...\n");
+}
+
+
+static const JNINativeMethod methods[] = {
+{"sayHello", "()V", (void *)c_hello}, /* Java native sayHello <--> C ,c_hello */
+};
+
+
+static void dump_data(unsigned char * b, int count)
+{
+	printf("%i bytes: ", count);
+	int i;
+	for (i=0; i < count; i++) {
+		printf("%02x ", b[i]);
+	}
+
+	printf("\n");
+}
+
+static void dump_data_ascii(unsigned char * b, int count)
+{
+	int i;
+	for (i=0; i < count; i++) {
+		printf("%c", b[i]);
+	}
+}
+
+
+static speed_t getBaudrate(jint baudrate)
+{
+	switch(baudrate) {
+	case 0: return B0;
+	case 50: return B50;
+	case 75: return B75;
+	case 110: return B110;
+	case 134: return B134;
+	case 150: return B150;
+	case 200: return B200;
+	case 300: return B300;
+	case 600: return B600;
+	case 1200: return B1200;
+	case 1800: return B1800;
+	case 2400: return B2400;
+	case 4800: return B4800;
+	case 9600: return B9600;
+	case 19200: return B19200;
+	case 38400: return B38400;
+	case 57600: return B57600;
+	case 115200: return B115200;
+	case 230400: return B230400;
+	case 460800: return B460800;
+	case 500000: return B500000;
+	case 576000: return B576000;
+	case 921600: return B921600;
+	case 1000000: return B1000000;
+	case 1152000: return B1152000;
+	case 1500000: return B1500000;
+	case 2000000: return B2000000;
+	case 2500000: return B2500000;
+	case 3000000: return B3000000;
+	case 3500000: return B3500000;
+	case 4000000: return B4000000;
+	default: return -1;
+	}
+}
+
+
+
+/* System.loadLibrary */
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
+{
+	JNIEnv *env;
+	jclass cls;
+	if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_4)) {
+		return JNI_ERR; /* JNI version not supported */
+	}
+	cls = (*env)->FindClass(env, "UartTest"); // 寻找 HelloJNI Java 类
+	if (cls == NULL) {
+		return JNI_ERR;
+	}
+	/* 2. map java hello <-->c c_hello */
+	if ((*env)->RegisterNatives(env, cls, methods, 1) < 0)
+		return JNI_ERR;
+	return JNI_VERSION_1_4;
+}
+
+
+/*
+ * Class:     UartTest
+ * Method:    openUart
+ * Signature: (Ljava/lang/String;I)V
+ */
+JNIEXPORT jint JNICALL Java_UartTest_openUart(JNIEnv *env, jclass cls, jstring path, jint baudrate) {
+
+	int fd = -1;
+	struct termios cfg;
+	speed_t baudSpeed;
+	unsigned char rb[10] = {0};
+	int count = 0;
+
+	/* Opening device */
+	const char *ttyPath = (*env)->GetStringUTFChars(env, path, NULL);
+	fd = open(ttyPath, O_RDWR);	// 以阻塞方式读写,O_NONBLOCK
+	if (fd == -1)
+	{
+		printf("Cannot open %s\n",ttyPath);
+		(*env)->ReleaseStringUTFChars(env, path, ttyPath);
+		/* TODO: throw an exception */
+		return fd;
+	}
+
+
+	/* Configure device */
+	baudSpeed = getBaudrate(baudrate);
+	
+	memset(&cfg, 0, sizeof(struct termios));
+	/* 	CREAD -> 使能接收 
+	*	B115200 -> 设置波特率
+	*	CS8 -> 数据位大小为 8bit
+	*	CLOCAL -> 本地模式，不改变端口的所有者
+	*	cfg.c_cflag &= ~CSTOPB -> 默认配置为 1 个停止位
+	*	奇偶检验位 --> (cfg.c_cflag &= ~PARENB;cfg.c_iflag &= ~INPCK;)
+	**/
+	cfg.c_cflag = baudSpeed | CS8 | CREAD | CLOCAL;
+	cfg.c_cflag &= ~CSTOPB;
+	cfg.c_cflag &= ~PARENB;
+	cfg.c_iflag &= ~INPCK;
+
+	
+	cfg.c_cc[VTIME] = 500;	// 5 seconds read timeout
+
+	/* 清空缓冲区 */
+	tcflush(fd, TCIOFLUSH);
+	/* 写入配置、使配置生效 */
+	if (tcsetattr(fd, TCSANOW, &cfg) < 0)
+	{
+		printf("Err, Unable to set comm port\n");
+		return 1;
+	}
+
+
+	// 测试读写操作
+	
+	count = read(fd, &rb, sizeof(rb));
+	if (count > 0){
+		dump_data_ascii(&rb,count);
+	}else{
+	}
+
+	count = write(fd, "Hello", 5);
+	if (count < 0) {
+		printf("write failed - errno=%d (%s)\n", errno, strerror(errno));
+	}
+
+
+	(*env)->ReleaseStringUTFChars(env, path, ttyPath);
+	
+	printf("%s,ttyPath -> %s ,fd -> %d \n", __func__, ttyPath,fd);
+	return fd;
+}
+
+/*
+ * Class:     UartTest
+ * Method:    closeUart
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_UartTest_closeUart(JNIEnv *env, jclass cls,jint fd) {
+
+	close(fd);
+	printf("%s, ttyfd = %d\n", __func__,fd);
+}
+
