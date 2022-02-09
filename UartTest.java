@@ -1,3 +1,5 @@
+import java.lang.String;
+
 public class UartTest {
 
     static {
@@ -10,10 +12,14 @@ public class UartTest {
     public static native void closeUart(int fd);
 
     public static void main(String[] args){
+        if(args.length != 2) {
+            return;
+        }
+        System.out.println("args[0] -> " + args[0] + "; args[1] -> " + Integer.parseInt(args[1]));
 
-		int ttyFd = -1;
+        int ttyFd = -1;
         sayHello();
-        ttyFd = openUart("/dev/ttyHSL1",115200);
+        ttyFd = openUart(args[0],Integer.parseInt(args[1]));
         closeUart(ttyFd);
     }
 }

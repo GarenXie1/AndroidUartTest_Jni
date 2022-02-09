@@ -1,6 +1,8 @@
-﻿#include <jni.h>
+﻿
+#include <jni.h>
 #include <stdio.h>
 #include "UartTest.h"
+
 #include <termios.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -32,9 +34,11 @@ static void dump_data(unsigned char * b, int count)
 static void dump_data_ascii(unsigned char * b, int count)
 {
 	int i;
+	printf("%i bytes: ", count);
 	for (i=0; i < count; i++) {
 		printf("%c", b[i]);
 	}
+	printf("\n");
 }
 
 
@@ -159,7 +163,7 @@ JNIEXPORT jint JNICALL Java_UartTest_openUart(JNIEnv *env, jclass cls, jstring p
 	}else{
 	}
 
-	count = write(fd, "Hello", 5);
+	count = write(fd, &rb, count);
 	if (count < 0) {
 		printf("write failed - errno=%d (%s)\n", errno, strerror(errno));
 	}
