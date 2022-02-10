@@ -3,6 +3,7 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class UartTest {
 
@@ -19,6 +20,8 @@ public class UartTest {
 	public static FileDescriptor mFd;
 	public static FileInputStream mFileInputStream;
 	public static FileOutputStream mFileOutputStream;
+	public static byte[] mInBuffer;
+	public static int len=-1, i=-1;
 
     public static void main(String[] args) throws IOException {
         if(args.length != 4) {
@@ -33,9 +36,29 @@ public class UartTest {
         mFd = openUart(args[0],Integer.parseInt(args[1]));
 		mFileInputStream = new FileInputStream(mFd);
 		mFileOutputStream = new FileOutputStream(mFd);
+		if(args[2].equals("write")){
 
-		mFileOutputStream.write(args[3].getBytes());
+			System.out.print("Write Uart data:" +args[3] + "\n");
+			mFileOutputStream.write(args[3].getBytes());
+		}else if(args[2].equals("read")){
 
+			mInBuffer = new byte[1024];
+			Arrays.fill(mInBuffer, (byte) 0);
+
+			len = mFileInputStream.read(mInBuffer);
+
+			if(args[3].equals("ascii")){
+
+				System.out.print("data ascii ->" + new String(mInBuffer,0,len) + "\n");
+			}else if(args[3].equals("hex")){
+
+				System.out.print("data Hex :");
+				for(i = 0 ; i < len ; i ++){
+					System.out.printf("0x%x ",mInBuffer[i]);
+				}
+				System.out.print("\n");
+			}
+		}
         closeUart(mFd);
     }
 }
