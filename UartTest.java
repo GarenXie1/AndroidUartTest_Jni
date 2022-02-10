@@ -30,8 +30,7 @@ public class UartTest {
 			System.out.println("Or           : UartTest /dev/ttyHSL1 115200 write xx");
             return;
         }
-        System.out.println("args[0] -> " + args[0] + "; args[1] -> " + Integer.parseInt(args[1]) +
-                "; args[2] -> " + args[2] + "; args[3] -> " + args[3]);
+        //System.out.println("args[0] -> " + args[0] + "; args[1] -> " + Integer.parseInt(args[1]) + "; args[2] -> " + args[2] + "; args[3] -> " + args[3]);
 
         mFd = openUart(args[0],Integer.parseInt(args[1]));
 		mFileInputStream = new FileInputStream(mFd);

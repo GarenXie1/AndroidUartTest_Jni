@@ -170,7 +170,7 @@ JNIEXPORT jobject JNICALL Java_UartTest_openUart(JNIEnv *env, jclass cls, jstrin
 	}
 	*/
 
-	printf("%s,ttyPath -> %s ,fd -> %d \n", __func__, ttyPath,fd);
+	//printf("%s,ttyPath -> %s ,fd -> %d \n", __func__, ttyPath,fd);
 	(*env)->ReleaseStringUTFChars(env, path, ttyPath);
 
 
@@ -178,34 +178,30 @@ JNIEXPORT jobject JNICALL Java_UartTest_openUart(JNIEnv *env, jclass cls, jstrin
 	jclass clsFileDescriptor = (*env)->FindClass(env, "java/io/FileDescriptor");
 	if(clsFileDescriptor == NULL){
 		printf("%s, can't find FileDescriptor Class.\n", __func__);
-	}else{
-		printf("%s, find FileDescriptor Class done.\n", __func__);
+		return NULL;
 	}
 
 	jmethodID idFileDescriptor = (*env)->GetMethodID(env, clsFileDescriptor, "<init>", "()V");
 	if(idFileDescriptor == NULL){
 		printf("%s, can't get <init> constructor method.\n", __func__);
-	}else{
-		printf("%s, get <init> constructor method done.\n", __func__);
+		return NULL;
 	}
 
 	mobjFileDescriptor = (*env)->NewObject(env, clsFileDescriptor, idFileDescriptor);
 	if(mobjFileDescriptor == NULL){
 		printf("%s, can not create FileDescriptor object.\n", __func__);
-	}else{
-		printf("%s, create FileDescriptor object done.\n", __func__);
+		return NULL;
 	}
 
 	jfieldID descriptorID = (*env)->GetFieldID(env, clsFileDescriptor, "descriptor", "I");
 	if(descriptorID == NULL){
 		printf("%s, can not get field descriptor ID.\n", __func__);
-	}else{
-		printf("%s, get field descriptor ID done.\n", __func__);
+		return NULL;
 	}
-	printf("%s, old descriptor -> %d \n", __func__, (*env)->GetIntField(env, mobjFileDescriptor, descriptorID));
+	//printf("%s, old descriptor -> %d \n", __func__, (*env)->GetIntField(env, mobjFileDescriptor, descriptorID));
 
 	(*env)->SetIntField(env, mobjFileDescriptor, descriptorID, (jint)fd);
-	printf("%s, new descriptor -> %d \n", __func__, (*env)->GetIntField(env, mobjFileDescriptor, descriptorID));
+	//printf("%s, new descriptor -> %d \n", __func__, (*env)->GetIntField(env, mobjFileDescriptor, descriptorID));
 
 	return mobjFileDescriptor;
 }
@@ -222,20 +218,18 @@ JNIEXPORT void JNICALL Java_UartTest_closeUart(JNIEnv *env, jclass cls,jobject o
 	jclass clsFileDescriptor = (*env)->FindClass(env, "java/io/FileDescriptor");
 	if(clsFileDescriptor == NULL){
 		printf("%s, can't find FileDescriptor Class.\n", __func__);
-	}else{
-		printf("%s, find FileDescriptor Class done.\n", __func__);
+		return;
 	}
 	
 	jfieldID descriptorID = (*env)->GetFieldID(env, clsFileDescriptor, "descriptor", "I");
 	if(descriptorID == NULL){
 		printf("%s, can not get field descriptor ID.\n", __func__);
-	}else{
-		printf("%s, get field descriptor ID done.\n", __func__);
+		return;
 	}
 
 	fd = (*env)->GetIntField(env, objFileDescriptor, descriptorID);
-	printf("%s, get descriptor fd -> %d \n", __func__, fd);
+	//printf("%s, get descriptor fd -> %d \n", __func__, fd);
 	close(fd);
-	printf("%s, close tty UART fd -> %d \n", __func__, fd);
+	//printf("%s, close tty UART fd -> %d \n", __func__, fd);
 }
 
