@@ -9,14 +9,14 @@
 
 
 
-void c_hello(JNIEnv *env, jobject cls)
+void jni_c_sayHello(JNIEnv *env, jobject cls)
 {
-	printf("C ---> Uart test ...\n");
+	printf("%s ---> Uart test ...\n",__func__);
 }
 
 
 static const JNINativeMethod methods[] = {
-{"sayHello", "()V", (void *)c_hello}, /* Java native sayHello <--> C ,c_hello */
+	{"sayHello", "()V", (void *)jni_c_sayHello}, /* Java native sayHello <--> C ,c_hello */
 };
 
 
@@ -95,7 +95,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		return JNI_ERR;
 	}
 	/* 2. map java hello <-->c c_hello */
-	if ((*env)->RegisterNatives(env, cls, methods, 1) < 0)
+	if ((*env)->RegisterNatives(env, cls, methods, (sizeof(methods)/sizeof(methods[0]))) < 0)
 		return JNI_ERR;
 	return JNI_VERSION_1_4;
 }
@@ -106,13 +106,14 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
  * Method:    openUart
  * Signature: (Ljava/lang/String;I)V
  */
-JNIEXPORT jint JNICALL Java_UartTest_openUart(JNIEnv *env, jclass cls, jstring path, jint baudrate) {
+JNIEXPORT jobject JNICALL Java_UartTest_openUart(JNIEnv *env, jclass cls, jstring path, jint baudrate) {
 
 	int fd = -1;
 	struct termios cfg;
 	speed_t baudSpeed;
 	unsigned char rb[10] = {0};
 	int count = 0;
+	jobject mobjFileDescriptor;
 
 	/* Opening device */
 	const char *ttyPath = (*env)->GetStringUTFChars(env, path, NULL);
@@ -122,7 +123,7 @@ JNIEXPORT jint JNICALL Java_UartTest_openUart(JNIEnv *env, jclass cls, jstring p
 		printf("Cannot open %s\n",ttyPath);
 		(*env)->ReleaseStringUTFChars(env, path, ttyPath);
 		/* TODO: throw an exception */
-		return fd;
+		return NULL;
 	}
 
 
@@ -151,12 +152,12 @@ JNIEXPORT jint JNICALL Java_UartTest_openUart(JNIEnv *env, jclass cls, jstring p
 	if (tcsetattr(fd, TCSANOW, &cfg) < 0)
 	{
 		printf("Err, Unable to set comm port\n");
-		return 1;
+		return NULL;
 	}
 
 
 	// 测试读写操作
-	
+	/*
 	count = read(fd, &rb, sizeof(rb));
 	if (count > 0){
 		dump_data_ascii(&rb,count);
@@ -167,12 +168,46 @@ JNIEXPORT jint JNICALL Java_UartTest_openUart(JNIEnv *env, jclass cls, jstring p
 	if (count < 0) {
 		printf("write failed - errno=%d (%s)\n", errno, strerror(errno));
 	}
+	*/
 
-
-	(*env)->ReleaseStringUTFChars(env, path, ttyPath);
-	
 	printf("%s,ttyPath -> %s ,fd -> %d \n", __func__, ttyPath,fd);
-	return fd;
+	(*env)->ReleaseStringUTFChars(env, path, ttyPath);
+
+
+	/* Create a corresponding file descriptor */
+	jclass clsFileDescriptor = (*env)->FindClass(env, "java/io/FileDescriptor");
+	if(clsFileDescriptor == NULL){
+		printf("%s, can't find FileDescriptor Class.\n", __func__);
+	}else{
+		printf("%s, find FileDescriptor Class done.\n", __func__);
+	}
+
+	jmethodID idFileDescriptor = (*env)->GetMethodID(env, clsFileDescriptor, "<init>", "()V");
+	if(idFileDescriptor == NULL){
+		printf("%s, can't get <init> constructor method.\n", __func__);
+	}else{
+		printf("%s, get <init> constructor method done.\n", __func__);
+	}
+
+	mobjFileDescriptor = (*env)->NewObject(env, clsFileDescriptor, idFileDescriptor);
+	if(mobjFileDescriptor == NULL){
+		printf("%s, can not create FileDescriptor object.\n", __func__);
+	}else{
+		printf("%s, create FileDescriptor object done.\n", __func__);
+	}
+
+	jfieldID descriptorID = (*env)->GetFieldID(env, clsFileDescriptor, "descriptor", "I");
+	if(descriptorID == NULL){
+		printf("%s, can not get field descriptor ID.\n", __func__);
+	}else{
+		printf("%s, get field descriptor ID done.\n", __func__);
+	}
+	printf("%s, old descriptor -> %d \n", __func__, (*env)->GetIntField(env, mobjFileDescriptor, descriptorID));
+
+	(*env)->SetIntField(env, mobjFileDescriptor, descriptorID, (jint)fd);
+	printf("%s, new descriptor -> %d \n", __func__, (*env)->GetIntField(env, mobjFileDescriptor, descriptorID));
+
+	return mobjFileDescriptor;
 }
 
 /*
@@ -180,9 +215,27 @@ JNIEXPORT jint JNICALL Java_UartTest_openUart(JNIEnv *env, jclass cls, jstring p
  * Method:    closeUart
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_UartTest_closeUart(JNIEnv *env, jclass cls,jint fd) {
+JNIEXPORT void JNICALL Java_UartTest_closeUart(JNIEnv *env, jclass cls,jobject objFileDescriptor) {
 
+	int fd;
+
+	jclass clsFileDescriptor = (*env)->FindClass(env, "java/io/FileDescriptor");
+	if(clsFileDescriptor == NULL){
+		printf("%s, can't find FileDescriptor Class.\n", __func__);
+	}else{
+		printf("%s, find FileDescriptor Class done.\n", __func__);
+	}
+	
+	jfieldID descriptorID = (*env)->GetFieldID(env, clsFileDescriptor, "descriptor", "I");
+	if(descriptorID == NULL){
+		printf("%s, can not get field descriptor ID.\n", __func__);
+	}else{
+		printf("%s, get field descriptor ID done.\n", __func__);
+	}
+
+	fd = (*env)->GetIntField(env, objFileDescriptor, descriptorID);
+	printf("%s, get descriptor fd -> %d \n", __func__, fd);
 	close(fd);
-	printf("%s, ttyfd = %d\n", __func__,fd);
+	printf("%s, close tty UART fd -> %d \n", __func__, fd);
 }
 

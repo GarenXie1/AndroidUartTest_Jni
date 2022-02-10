@@ -18,18 +18,18 @@ JNIEXPORT void JNICALL Java_UartTest_sayHello
 /*
  * Class:     UartTest
  * Method:    openUart
- * Signature: (Ljava/lang/String;I)I
+ * Signature: (Ljava/lang/String;I)Ljava/io/FileDescriptor;
  */
-JNIEXPORT jint JNICALL Java_UartTest_openUart
+JNIEXPORT jobject JNICALL Java_UartTest_openUart
   (JNIEnv *, jclass, jstring, jint);
 
 /*
  * Class:     UartTest
  * Method:    closeUart
- * Signature: (I)V
+ * Signature: (Ljava/io/FileDescriptor;)V
  */
 JNIEXPORT void JNICALL Java_UartTest_closeUart
-  (JNIEnv *, jclass, jint);
+  (JNIEnv *, jclass, jobject);
 
 #ifdef __cplusplus
 }
